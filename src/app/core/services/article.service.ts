@@ -19,6 +19,15 @@ export class ArticleService {
     return this.http.get<Page<ArticleAVendre>>(this.api, { params });
   }
 
+  uploadImage(articleId: number, file: File): Observable<{ imageUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ imageUrl: string }>(
+      `${this.api}/${articleId}/image`,
+      formData
+    );
+  }
+
   getById(id: number): Observable<ArticleAVendre> {
     return this.http.get<ArticleAVendre>(`${this.api}/${id}`);
   }

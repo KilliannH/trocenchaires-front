@@ -13,9 +13,15 @@ import { StatutPipe } from '../../pipes/statut.pipe';
       class="group block bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 overflow-hidden">
 
       <!-- Placeholder image -->
-      <div class="h-40 bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-        <span class="text-4xl">📦</span>
+      <div class="h-40 bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center overflow-hidden">
+        @if (article.imageUrl) {
+          <img [src]="article.imageUrl" [alt]="article.nom"
+              class="w-full h-full object-cover" />
+        } @else {
+          <span class="text-4xl">📦</span>
+        }
       </div>
+
 
       <div class="p-4">
         <!-- Catégorie + statut -->

@@ -46,5 +46,13 @@ export const routes: Routes = [
         (m) => m.ProfileComponent
       ),
   },
+  {
+    path: 'onboarding',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/onboarding/onboarding.component').then(
+        (m) => m.OnboardingComponent
+      ),
+  },
   { path: '**', redirectTo: '' },
 ];

@@ -5,10 +5,12 @@ import { ArticleService } from '../../core/services/article.service';
 import { ArticleAVendre, Enchere } from '../../core/models/article.model';
 import { StatutPipe } from '../../shared/pipes/statut.pipe';
 import { DatePipe } from '@angular/common';
+import { AdresseService } from '../../core/services/adresse.service';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-profile',
-  imports: [RouterLink, StatutPipe, DatePipe],
+  imports: [RouterLink, StatutPipe, DatePipe, ReactiveFormsModule],
   template: `
     <div class="max-w-5xl mx-auto px-4 py-8">
 
@@ -93,6 +95,52 @@ import { DatePipe } from '@angular/common';
             </div>
           }
         </div>
+
+        <!-- Adresse de retrait -->
+        <div class="mt-8">
+          <h2 class="font-semibold text-gray-800 mb-4">Mon adresse de retrait</h2>
+
+          <div class="bg-white border border-gray-200 rounded-xl p-6">
+            <form [formGroup]="adresseForm" (ngSubmit)="saveAdresse()" class="space-y-4">
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Rue</label>
+                <input formControlName="rue" type="text" placeholder="12 rue de la Paix"
+                      class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+              </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Code postal</label>
+                  <input formControlName="codePostal" type="text" maxlength="5" placeholder="44000"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm
+                                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+                  <input formControlName="ville" type="text" placeholder="Nantes"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm
+                                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                </div>
+              </div>
+
+              @if (adresseError()) {
+                <p class="text-sm text-red-500">{{ adresseError() }}</p>
+              }
+              @if (adresseSuccess()) {
+                <p class="text-sm text-green-600 font-medium">✓ Adresse sauvegardée</p>
+              }
+
+              <button type="submit" [disabled]="adresseLoading() || adresseForm.invalid"
+                      class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm
+                            hover:bg-indigo-700 transition-colors disabled:opacity-60">
+                @if (adresseLoading()) { Sauvegarde... } @else { Sauvegarder }
+              </button>
+
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   `,
@@ -100,9 +148,21 @@ import { DatePipe } from '@angular/common';
 export class ProfileComponent implements OnInit {
   auth = inject(AuthService);
   private articleService = inject(ArticleService);
+  private adresseService = inject(AdresseService);
+  private fb = inject(FormBuilder);
 
   mesArticles = signal<ArticleAVendre[]>([]);
   mesEncheres = signal<Enchere[]>([]);
+
+  adresseForm = this.fb.group({
+  rue: ['', Validators.required],
+  codePostal: ['', Validators.required],
+  ville: ['', Validators.required],
+  });
+  adresseLoading = signal(false);
+  adresseSuccess = signal(false);
+  adresseError = signal<string | null>(null);
+  hasAdresse = signal(false);
 
   ngOnInit() {
     // Charger tous les articles et filtrer côté client (en attendant un endpoint /api/articles/mes-articles)
@@ -114,6 +174,33 @@ export class ProfileComponent implements OnInit {
         );
       },
     });
-    // TODO: endpoint GET /api/encheres/mes-encheres à créer côté backend
+    this.adresseService.get().subscribe({
+      next: (adresse) => {
+        this.hasAdresse.set(true);
+        this.adresseForm.patchValue(adresse);
+      },
+      error: () => this.hasAdresse.set(false),
+    });
+  }
+
+  saveAdresse() {
+    if (this.adresseForm.invalid) return;
+    this.adresseLoading.set(true);
+    this.adresseError.set(null);
+    this.adresseSuccess.set(false);
+    const v = this.adresseForm.value;
+    const req = { rue: v.rue!, codePostal: v.codePostal!, ville: v.ville! };
+    const call$ = this.hasAdresse() ? this.adresseService.update(req) : this.adresseService.create(req);
+    call$.subscribe({
+      next: () => {
+        this.hasAdresse.set(true);
+        this.adresseSuccess.set(true);
+        this.adresseLoading.set(false);
+      },
+      error: () => {
+        this.adresseError.set('Erreur lors de la sauvegarde.');
+        this.adresseLoading.set(false);
+      },
+    });
   }
 }

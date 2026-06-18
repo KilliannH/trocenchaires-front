@@ -45,6 +45,21 @@ import { Categorie } from '../../../core/models/article.model';
           </textarea>
         </div>
 
+        <!-- Upload image -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Photo de l'article</label>
+          <input
+            type="file"
+            accept="image/*"
+            (change)="onFileSelected($event)"
+            class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0 file:text-sm file:font-medium
+                  file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" />
+          @if (selectedFile) {
+            <p class="text-xs text-gray-400 mt-1">{{ selectedFile.name }}</p>
+          }
+        </div>
+
         <!-- Catégorie -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
@@ -100,34 +115,6 @@ import { Categorie } from '../../../core/models/article.model';
           <p class="text-xs text-red-500 -mt-3">La date de fin doit être après la date de début</p>
         }
 
-        <!-- Adresse retrait (champs manuels pour simplifier, adresse créée inline) -->
-        <fieldset class="border border-gray-200 rounded-lg p-4">
-          <legend class="text-sm font-medium text-gray-700 px-2">📍 Adresse de retrait *</legend>
-          <div class="space-y-3 mt-2">
-            <input
-              formControlName="rue"
-              type="text"
-              placeholder="Rue"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-            <div class="grid grid-cols-3 gap-3">
-              <input
-                formControlName="codePostal"
-                type="text"
-                placeholder="Code postal"
-                maxlength="5"
-                class="border border-gray-300 rounded-lg px-3 py-2 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-              <input
-                formControlName="ville"
-                type="text"
-                placeholder="Ville"
-                class="col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-            </div>
-          </div>
-        </fieldset>
-
         <!-- Erreur globale -->
         @if (error()) {
           <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -159,6 +146,7 @@ export class ArticleCreateComponent implements OnInit {
   private articleService = inject(ArticleService);
   private categorieService = inject(CategorieService);
   private router = inject(Router);
+  selectedFile: File | null = null;
 
   categories = signal<Categorie[]>([]);
   loading = signal(false);
@@ -171,10 +159,7 @@ export class ArticleCreateComponent implements OnInit {
       categorieId: ['', Validators.required],
       prixInitial: [1, [Validators.required, Validators.min(1)]],
       dateDebutEncheres: [this.today(), Validators.required],
-      dateFinEncheres: [this.inOneWeek(), Validators.required],
-      rue: ['', Validators.required],
-      codePostal: ['', Validators.required],
-      ville: ['', Validators.required],
+      dateFinEncheres: [this.inOneWeek(), Validators.required]
     },
     { validators: this.datesValidator }
   );
@@ -199,6 +184,13 @@ export class ArticleCreateComponent implements OnInit {
     return !!(ctrl?.hasError(errorType) && ctrl?.touched);
   }
 
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.[0]) {
+      this.selectedFile = input.files[0];
+    }
+  }
+
   submit() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -219,13 +211,19 @@ export class ArticleCreateComponent implements OnInit {
       dateDebutEncheres: v.dateDebutEncheres!,
       dateFinEncheres: v.dateFinEncheres!,
       prixInitial: v.prixInitial!,
-      categorieId: Number(v.categorieId),
-      adresseRetraitId: 1, // TODO: créer l'adresse via POST /api/adresses
+      categorieId: Number(v.categorieId)
     };
 
     this.articleService.create(payload).subscribe({
       next: (article) => {
-        this.router.navigate(['/articles', article.id]);
+        if (this.selectedFile) {
+          this.articleService.uploadImage(article.id, this.selectedFile).subscribe({
+            next: () => this.router.navigate(['/articles', article.id]),
+            error: () => this.router.navigate(['/articles', article.id]), // on navigue quand même
+          });
+        } else {
+          this.router.navigate(['/articles', article.id]);
+        }
       },
       error: (err) => {
         this.error.set(err.error?.message || 'Erreur lors de la publication.');

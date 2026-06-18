@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { switchMap, tap } from 'rxjs';
 import { RegisterRequest } from '../models/article.model';
 
 @Injectable({ providedIn: 'root' })
@@ -24,8 +24,12 @@ export class AuthService {
   }
 
   register(data: RegisterRequest) {
-    return this.http.post(`${this.api}/register`, data);
-  }
+    return this.http.post(`${this.api}/register`, data).pipe(
+      // Après inscription, on login automatiquement puis on redirige vers onboarding
+      switchMap(() => this.login(data.pseudo, data.motDePasse)),
+      tap(() => this.router.navigate(['/onboarding']))
+    );
+}
 
   logout() {
     localStorage.removeItem('token');

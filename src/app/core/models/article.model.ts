@@ -27,6 +27,7 @@ export interface ArticleAVendre {
   dateDebutEncheres: string;
   dateFinEncheres: string;
   prixInitial: number;
+  imageUrl?: string;
   prixVente: number;
   statut: number;
   vendeur: Utilisateur;
@@ -58,7 +59,6 @@ export interface CreateArticleRequest {
   dateFinEncheres: string;
   prixInitial: number;
   categorieId: number;
-  adresseRetraitId: number;
 }
 
 export interface LoginRequest {

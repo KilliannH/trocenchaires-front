@@ -47,8 +47,13 @@ import { DatePipe } from '@angular/common';
             </div>
 
             <!-- Image placeholder -->
-            <div class="h-52 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl flex items-center justify-center border border-gray-100">
-              <span class="text-6xl">📦</span>
+            <div class="h-52 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl flex items-center justify-center border border-gray-100 overflow-hidden">
+              @if (article()?.imageUrl) {
+                <img [src]="article()!.imageUrl" [alt]="article()!.nom"
+                    class="w-full h-full object-cover rounded-xl" />
+              } @else {
+                <span class="text-6xl">📦</span>
+              }
             </div>
 
             <!-- Description -->
